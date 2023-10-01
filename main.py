@@ -1,5 +1,4 @@
 from decouple import config
-from github   import fetch_issues, write_to_json
 
 GITHUB_TOKEN = config('GITHUB_TOKEN')
 GITHUB_REPO  = config('GITHUB_REPO')
