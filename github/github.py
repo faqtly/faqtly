@@ -35,9 +35,13 @@ def fetch_readme(token: str, repo: str):
     """
     :param token: str: GitHub authorization token
     :param repo:  str: Repository Owner/Name of GitHub Repository
-    :return:      str: README repository file
+    :return:      str: README repository file if it exists, otherwise None
     """
-    return get(f"https://api.github.com/repos/{repo}/contents/README.md", headers=headers(token)).text
+    readme = get(f"https://api.github.com/repos/{repo}/contents/README.md", headers=headers(token)).text
+    error  = '{"message":"Not Found",' \
+             '"documentation_url":"https://docs.github.com/rest/repos/contents#get-repository-content"}'
+
+    return readme if readme != error else None
 
 
 @time_spent

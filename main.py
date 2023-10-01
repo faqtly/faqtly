@@ -28,9 +28,11 @@ def validate_credits():
 
 
 def main():
-    issues = github.fetch_issue(GITHUB_TOKEN, GITHUB_REPO)
-    with open('output.json', 'w', encoding='UTF-8', newline='') as file:
-        dump(issues, file, ensure_ascii=False, indent=4)
+    # issues = github.fetch_issue(GITHUB_TOKEN, GITHUB_REPO)
+    # with open('output.json', 'w', encoding='UTF-8', newline='') as file:
+    #     dump(issues, file, ensure_ascii=False, indent=4)
+
+    print(github.fetch_readme(GITHUB_TOKEN, GITHUB_REPO))
 
 
 if __name__ == '__main__':
