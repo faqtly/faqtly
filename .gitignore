@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Output files
+output/
+output.json
+
 # C extensions
 *.so
 
@@ -47,6 +51,7 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
+test.py
 .hypothesis/
 .pytest_cache/
 cover/

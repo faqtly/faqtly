@@ -1,4 +1,6 @@
 from decouple import config
+from github   import github
+from json     import dump
 
 GITHUB_TOKEN = config('GITHUB_TOKEN')
 GITHUB_REPO  = config('GITHUB_REPO')
@@ -26,7 +28,9 @@ def validate_credits():
 
 
 def main():
-    pass
+    issues = github.fetch_issue(GITHUB_TOKEN, GITHUB_REPO)
+    with open('output.json', 'w', encoding='UTF-8', newline='') as file:
+        dump(issues, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':
