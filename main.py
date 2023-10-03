@@ -1,6 +1,7 @@
 from decouple import config
 from github   import github
-from json     import dump
+from openai   import openai
+from json     import dump, load
 
 GITHUB_TOKEN = config('GITHUB_TOKEN')
 GITHUB_REPO  = config('GITHUB_REPO')
@@ -29,7 +30,10 @@ def validate_credits():
 
 def main():
     readme = github.fetch_readme(GITHUB_TOKEN, GITHUB_REPO)
-    issues = github.fetch_issue(GITHUB_TOKEN, GITHUB_REPO)
+    # issues = github.fetch_issue(GITHUB_TOKEN, GITHUB_REPO)
+
+    with open('output.json', 'r', encoding='UTF-8', newline='') as file:
+        issues = load(file)
 
     with open('output.json', 'w', encoding='UTF-8', newline='') as file:
         dump(issues, file, ensure_ascii=False, indent=4)
