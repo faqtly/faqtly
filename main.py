@@ -1,6 +1,5 @@
 from decouple import config
 from github   import github
-from openai   import openai
 from json     import dump, load
 
 GITHUB_TOKEN = config('GITHUB_TOKEN')
