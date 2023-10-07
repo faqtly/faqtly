@@ -1,11 +1,7 @@
-from decouple import config
+from config   import GITHUB_TOKEN, GITHUB_REPO, OPENAI_TOKEN
 from github   import github
-from openai   import openai
 from json     import dump, load
-
-GITHUB_TOKEN = config('GITHUB_TOKEN')
-GITHUB_REPO  = config('GITHUB_REPO')
-OPENAI_TOKEN = config('OPENAI_TOKEN')
+from os       import path, mkdir
 
 
 # Primitive token validation
@@ -29,14 +25,23 @@ def validate_credits():
 
 
 def main():
-    readme = github.fetch_readme(GITHUB_TOKEN, GITHUB_REPO)
+    if not path.exists('storage'):
+        mkdir('storage')
+
+    # readme = github.fetch_readme(GITHUB_TOKEN, GITHUB_REPO)
     # issues = github.fetch_issue(GITHUB_TOKEN, GITHUB_REPO)
 
-    with open('output.json', 'r', encoding='UTF-8', newline='') as file:
-        issues = load(file)
+    # Write README to .md
+    # with open(f'storage/README.md', 'w', encoding='UTF-8', newline='') as file:
+    #     file.write(readme)
 
-    with open('output.json', 'w', encoding='UTF-8', newline='') as file:
-        dump(issues, file, ensure_ascii=False, indent=4)
+    # Load issues from .json [Temp]
+    # with open(f'storage/{GITHUB_REPO}.json', 'r', encoding='UTF-8', newline='') as file:
+    #     issues = load(file)
+
+    # Write issues to .json
+    # with open(f'storage/{GITHUB_REPO[GITHUB_REPO.find("/") + 1:]}.json', 'w', encoding='UTF-8', newline='') as file:
+    #     dump(issues, file, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':
