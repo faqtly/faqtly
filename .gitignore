@@ -3,7 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Output files
+# Output / Storage
+storage/
 output/
 output.json
 
