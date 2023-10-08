@@ -10,7 +10,6 @@ def fetch_readme():
         'Authorization': f'token {GITHUB_TOKEN}',
         'Accept'       : 'application/vnd.github.v3.raw'
     }
-
     url     = fr"https://api.github.com/repos/{GITHUB_REPO}/contents/README.md"
     readme  = get(url, headers=headers).text
     error   = r'{"message":"Not Found","documentation_url":' \
