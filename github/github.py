@@ -32,7 +32,10 @@ def fetch_repo_info():
         'Authorization': f'token {GITHUB_TOKEN}',
         'Accept': 'application/vnd.github.v3.raw'
     }
-    urls      = [fr'https://api.github.com/repos/{GITHUB_REPO}', fr'https://api.github.com/repos/{GITHUB_REPO}/issues']
+    urls      = [
+        fr'https://api.github.com/repos/{GITHUB_REPO}',
+        fr'https://api.github.com/repos/{GITHUB_REPO}/issues?state=all'
+    ]
     responses = []
 
     for url in urls:
