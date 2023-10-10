@@ -2,6 +2,7 @@ from config    import GITHUB_TOKEN, GITHUB_REPO
 from requests  import get, post
 from json      import dump
 from datetime  import datetime
+from math      import ceil
 
 
 # Debug function
@@ -24,33 +25,25 @@ def time_spent(func):
 def fetch_repo_info():
     """
     This function returns general repository data, description, number of issues
-    * issues count - issues, pull requests, WIP discussions
-    :return: tuple: (Repository description, Repository issues count)
+    * issues count - issues, pull requests, discussions
+    :return: tuple: (Repository description, Issues pages count)
     """
-    headers = {
-        'Authorization': f'Bearer {GITHUB_TOKEN}'
+    headers   = {
+        'Authorization': f'token {GITHUB_TOKEN}',
+        'Accept': 'application/vnd.github.v3.raw'
     }
-    url         = fr'https://api.github.com/graphql'
-    owner, repo = GITHUB_REPO.split('/')
-    data        = {'query': f'''
-    {{
-      repository(owner: "{owner}", name: "{repo}") {{
-        description
-        issues {{totalCount}}
-        pullRequests(states: [OPEN, CLOSED, MERGED]) {{totalCount}}
-      }}
-    }}
-    '''}
+    urls      = [fr'https://api.github.com/repos/{GITHUB_REPO}', fr'https://api.github.com/repos/{GITHUB_REPO}/issues']
+    responses = []
 
-    request = post(url, json=data, headers=headers)
-    response = request.json()['data']['repository']
+    for url in urls:
+        responses.append(get(url, headers=headers).json())
 
-    description = response['description']
-    issues_count = response['issues']['totalCount'] + response['pullRequests']['totalCount']
+    description  = responses[0]['description']
+    issues_count = ceil(responses[1][0]['number'] / 100)
 
     # Convert description to plain text, removes unnecessary characters. Thanks a lot, Inlife! :D
     if description is not None:
-        description = sub(r'[^a-zA-Zа-яА-Я0-9\s.,!?-]', '', response['description']).strip()
+        description = sub(r'[^a-zA-Zа-яА-Я0-9\s.,!?-]', '', description).strip()
 
     return description, issues_count
 
