@@ -1,9 +1,10 @@
-from config          import GITHUB_TOKEN, GITHUB_REPO, OPENAI_TOKEN
-from github.github   import fetch_issue
-from github.readme   import fetch_readme
-from json            import dump, load
-from os.path         import exists
-from os              import mkdir
+from config        import GITHUB_TOKEN, GITHUB_REPO, OPENAI_TOKEN
+from github.github import gather_issues
+from github.readme import fetch_readme
+from json          import dump, load
+from os.path       import exists
+from os            import mkdir
+from asyncio       import run
 
 
 def main():
@@ -11,7 +12,7 @@ def main():
         mkdir('storage')
 
     # readme = fetch_readme()
-    # issues = fetch_issue()
+    # issues = run(gather_issues())
 
     # Write README to .md
     # with open(f'storage/README.md', 'w', encoding='UTF-8', newline='') as file:

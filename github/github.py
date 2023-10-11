@@ -1,8 +1,11 @@
-from config    import GITHUB_TOKEN, GITHUB_REPO
-from requests  import get, post
-from json      import dump
-from datetime  import datetime
-from math      import ceil
+from config   import GITHUB_TOKEN, GITHUB_REPO
+from requests import get, post
+from json     import dump
+from time     import time
+from math     import ceil
+from re       import sub
+from aiohttp  import ClientSession
+from asyncio  import create_task, gather
 
 
 # Debug function
@@ -12,10 +15,10 @@ def time_spent(func):
     :param func: function
     :return:     function result
     """
-    def wrapper(*args, **kwargs):
-        start  = datetime.now()
-        result = func(*args, **kwargs)
-        print(f'[{func.__name__}]Time spent: {datetime.now() - start}')
+    async def wrapper(*args, **kwargs):
+        start  = time()
+        result = await func(*args, **kwargs)
+        print(f'[{func.__name__}]Time spent: {round(time() - start, 2)}')
 
         return result
 
@@ -51,6 +54,9 @@ def fetch_repo_info():
     return description, issues_count
 
 
+repo_description, issue_pages = fetch_repo_info()
+
+
 def fetch_comments(url: str):
     """
     The function sends a request for comments if the response is not an empty .json file and increments the page index
@@ -82,41 +88,47 @@ def fetch_comments(url: str):
     return comments
 
 
-@time_spent
-def fetch_issue():
+async def fetch_issue(session: object, url: str, params: dict):
     """
-    The function will collect information from pages as long as a non-empty .json file comes from the page, increasing
-    the page index by 1 each iteration. If .json is empty, the loop will break
-    :return:     list: List of issues
+    The function sends an async request to a page with an issues
+    :param session: object: Async session
+    :param url:        str: Issues url
+    :param params:     str: Request parameters
+    :return:          list: List of issues from the current page
     """
-    headers    = {
+    headers = {
         'Authorization': f'token {GITHUB_TOKEN}',
         'Accept': 'application/vnd.github.v3.raw'
     }
-    page_index = 1  # Let's start with one, because page 1 is equivalent to page 0
-    issues     = []
 
-    while True:
-        url      = fr'https://api.github.com/repos/{GITHUB_REPO}/issues'
-        params   = {"state": "all", "page": page_index, "per_page": 100}
-        request  = get(url, params=params, headers=headers)
-        response = request.json()
-        print(f'Fetching: {page_index}')
+    async with session.get(url=url, params=params, headers=headers) as response:
+        response = await response.json()
+        issues   = []
+        for issue in response:
+            issues.append({'Name'   : issue['title'],
+                           'Status' : issue['state'],
+                           'Author' : issue['user']['login'],
+                           'Tags'   : [tag['name'].replace('type:', '') for tag in issue['labels']],
+                           'Text'   : issue['body'],
+                           'URL'    : issue['url'],
+                           'Number' : issue['number'],
+                           'C_Count': issue['comments']})
 
-        if response:
-            for issue in response:
-                issues.append({'Name'   : issue['title'],
-                               'Status' : issue['state'],
-                               'Author' : issue['user']['login'],
-                               'Tags'   : [tag['name'].replace('type:', '') for tag in issue['labels']],
-                               'Text'   : issue['body'],
-                               'URL'    : issue['url'],
-                               'Number' : issue['number'],
-                               'C_Count': issue['comments']})
-        # 'Comments' : fetch_comments(token, issue['comments_url'])
-        else:
-            break
+        return issues
 
-        page_index += 1
 
-    return issues
+@time_spent
+async def gather_issues():
+    """
+    The function creates n-number of tasks to send requests
+    :return: list: List of issues
+    """
+    async with ClientSession() as session:
+        tasks   = []
+        url     = fr'https://api.github.com/repos/{GITHUB_REPO}/issues'
+
+        for page_index in range(1, issue_pages + 1):
+            params = {"state": "all", "page": page_index, "per_page": 100}
+            tasks.append(create_task(fetch_issue(session, url, params)))
+
+        return [i for issues in await gather(*tasks) for i in issues]
