@@ -36,7 +36,7 @@ async def fetch_comments(session: object, url: str, params: dict):
         'Authorization': f'token {GITHUB_TOKEN}',
         'Accept': 'application/vnd.github.v3.raw'
     }
-    print('Comments')
+
     async with session.get(url=url, params=params, headers=headers) as response:
         response = await response.json()
         comments = []
@@ -76,7 +76,7 @@ async def fetch_issue(session: object, url: str, params: dict):
         'Authorization': f'token {GITHUB_TOKEN}',
         'Accept': 'application/vnd.github.v3.raw'
     }
-    print('Issue')
+
     async with session.get(url=url, params=params, headers=headers) as response:
         response = await response.json()
         issues   = []
@@ -86,12 +86,12 @@ async def fetch_issue(session: object, url: str, params: dict):
             c_url   = issue['comments_url']
 
             issues.append({'Name'    : issue['title'],
-                           'Status'  : issue['state'],
-                           'Author'  : issue['user']['login'],
-                           'Tags'    : [tag['name'].replace('type:', '') for tag in issue['labels']],
+                           # 'Status'  : issue['state'],
+                           # 'Author'  : issue['user']['login'],
+                           # 'Tags'    : [tag['name'].replace('type:', '') for tag in issue['labels']],
                            'Text'    : issue['body'],
-                           'URL'     : issue['url'],
-                           'Number'  : issue['number'],
+                           # 'URL'     : issue['url'],
+                           # 'Number'  : issue['number'],
                            'Comments': await gather_comments(c_url, c_pages) if c_pages != 0 else []})
 
         return issues
