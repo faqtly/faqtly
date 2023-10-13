@@ -80,8 +80,10 @@ async def fetch_issue(session: object, url: str, params: dict):
     async with session.get(url=url, params=params, headers=headers) as response:
         response = await response.json()
         issues   = []
+
         for issue in response:
-            comments_pages = ceil(issue['comments'] / 100)
+            c_pages = ceil(issue['comments'] / 100)
+            c_url   = issue['comments_url']
 
             issues.append({'Name'    : issue['title'],
                            'Status'  : issue['state'],
@@ -90,7 +92,7 @@ async def fetch_issue(session: object, url: str, params: dict):
                            'Text'    : issue['body'],
                            'URL'     : issue['url'],
                            'Number'  : issue['number'],
-                           'Comments': await gather_comments(issue['comments_url'], comments_pages)})
+                           'Comments': await gather_comments(c_url, c_pages) if c_pages != 0 else []})
 
         return issues
 
