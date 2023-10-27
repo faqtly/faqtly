@@ -1,9 +1,7 @@
-from config            import GITHUB_REPO, GITHUB_TOKEN
-from github.repository import issue_pages
-from requests          import get
+from github.github     import github_request
 from time              import time
 from math              import ceil
-from asyncio           import create_task, gather, run
+from asyncio           import create_task, gather
 from aiohttp           import ClientSession
 
 
@@ -11,104 +9,91 @@ from aiohttp           import ClientSession
 def time_spent(func):
     """
     The function counts the time taken to fetch all issues from the repository
-    :param func: function
-    :return:     function result
+    :param func: func
+    :return:     func()
     """
     async def wrapper(*args, **kwargs):
         start  = time()
         result = await func(*args, **kwargs)
-        print(f'[{func.__name__}]Time spent: {round(time() - start, 2)}')
+        print(f'[{func.__name__}]Time spent: {(time() - start):.1f}')
 
         return result
 
     return wrapper
 
 
-async def fetch_comments(session: object, url: str, params: dict):
+async def fetch_pages_count():
     """
-    The function sends an async request to a page with comments
-    :param session: object: Async session
-    :param url:        str: Comment URL
-    :param params:    dict: Request parameters
-    :return:          list: List of comments from the current page
+    The function sends a request to the last issue page and gets the id of the last issue,
+    then the total number of pages with issues is determined by the formula
+    :return: int: Number of pages
     """
-    headers = {
-        'Authorization': f'token {GITHUB_TOKEN}',
-        'Accept': 'application/vnd.github.v3.raw'
-    }
+    async with ClientSession() as session:
+        response = await github_request(session, '/issues?state=all')
 
-    async with session.get(url=url, params=params, headers=headers) as response:
-        response = await response.json()
-        comments = []
-
-        for comment in response:
-            comments.append(comment['body'])
-
-        return comments
+    return ceil(response[0]['number'] / 100)
 
 
 async def gather_comments(url: str, count: int):
     """
-    The function creates n-number of tasks to send requests
+    The function creates n-tasks to send requests for comments (pages)
     :param url:   str: Comments URL
     :param count: int: Pages count
     :return:     list: List of comments
     """
+    tasks    = []
+    comments = []
+
     async with ClientSession() as session:
-        tasks = []
-
         for page_index in range(1, count + 1):
-            params = {"state": "all", "page": page_index, "per_page": 100}
-            tasks.append(create_task(fetch_comments(session, url, params)))
+            params = {"page": page_index, "per_page": 100}
+            tasks.append(create_task(github_request(session, url, params=params)))
 
-        return [i for comments in await gather(*tasks) for i in comments]
+        # TODO: This needs to be replaced, otherwise the data will not be received correctly,
+        # TODO: but I haven't figured out what the error is yet
+        r_comments = [i for comments in await gather(*tasks) for i in comments if isinstance(comments, list)]
 
+        for comment in r_comments:
+            comments.append(comment['body'])
 
-async def fetch_issue(session: object, url: str, params: dict):
-    """
-    The function sends an async request to a page with an issues
-    :param session: object: Async session
-    :param url:        str: Issues url
-    :param params:     str: Request parameters
-    :return:          list: List of issues from the current page
-    """
-    headers = {
-        'Authorization': f'token {GITHUB_TOKEN}',
-        'Accept': 'application/vnd.github.v3.raw'
-    }
-
-    async with session.get(url=url, params=params, headers=headers) as response:
-        response = await response.json()
-        issues   = []
-
-        for issue in response:
-            c_pages = ceil(issue['comments'] / 100)
-            c_url   = issue['comments_url']
-
-            issues.append({'Name'    : issue['title'],
-                           # 'Status'  : issue['state'],
-                           # 'Author'  : issue['user']['login'],
-                           # 'Tags'    : [tag['name'].replace('type:', '') for tag in issue['labels']],
-                           'Text'    : issue['body'],
-                           # 'URL'     : issue['url'],
-                           # 'Number'  : issue['number'],
-                           'Comments': await gather_comments(c_url, c_pages) if c_pages != 0 else []})
-
-        return issues
+    return comments
 
 
 @time_spent
 async def gather_issues():
     """
-    The function creates n-number of tasks to send requests
+    The function creates n-tasks to send requests for issues
+    Then creates n-tasks to send requests for comments (issues)
     :return: list: List of issues
     """
+    tasks   = []
+    issues  = []
+    total_p = await fetch_pages_count()
+
     async with ClientSession() as session:
-        tasks   = []
-        url     = fr'https://api.github.com/repos/{GITHUB_REPO}/issues'
-
-        for page_index in range(1, issue_pages + 1):
+        # Creating tasks (issues)
+        for page_index in range(1, total_p + 1):
             params = {"state": "all", "page": page_index, "per_page": 100}
-            tasks.append(create_task(fetch_issue(session, url, params)))
+            tasks.append(create_task(github_request(session, '/issues', params=params)))
 
-        return [i for issues in await gather(*tasks) for i in issues]
+        # Data acquisition and processing (issues)
+        for issue in [i for issues in await gather(*tasks) for i in issues]:
+            issues.append({'Name'   : issue['title'],
+                           'Text'   : issue['body'],
+                           'URL'    : issue['url'],
+                           'Number' : issue['number'],
+                           'C_Pages': ceil(issue['comments'] / 100),
+                           'I_URL'  : issue['comments_url']})
+        else:
+            tasks.clear()
+
+        # Creating tasks (comments)
+        for issue in issues:
+            tasks.append(create_task(gather_comments(issue['I_URL'], issue['C_Pages'])))
+
+        # Data acquisition and processing (comments)
+        comments = await gather(*tasks)
+        for number, issue in enumerate(issues):
+            issue['Comments'] = comments[number]
+
+    return issues
