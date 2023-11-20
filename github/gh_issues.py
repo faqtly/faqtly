@@ -81,17 +81,21 @@ async def gather_issues(session: object):
     tasks.clear()
 
     for issue in issues_list:
-        number   = issue['number']
-        cm_url   = issue['comments_url']
-        cm_pages = ceil(issue['comments'] / 100)
+        try:
+            number = issue['number']
+            cm_url = issue['comments_url']
+            cm_pages = ceil(issue['comments'] / 100)
 
-        issues[number] = {'Name'        : issue['title'],
-                          'Text'        : issue['body'],
-                          'URL'         : issue['url'],
-                          'Comments_URL': cm_url}
+            issues[number] = {'Name': issue['title'],
+                              'Text': issue['body'],
+                              'URL': issue['url'],
+                              'Comments_URL': cm_url}
 
-        url = cm_url.replace(fr'https://api.github.com/repos/{GITHUB_REPO}', '')
-        tasks.append(create_task(gather_comments(session, url, cm_pages, number)))
+            url = cm_url.replace(fr'https://api.github.com/repos/{GITHUB_REPO}', '')
+            tasks.append(create_task(gather_comments(session, url, cm_pages, number)))
+
+        except TypeError:
+            continue
 
     # Data acquisition and processing (comments)
     comments = {key: value for i in await gather(*tasks) for key, value in i.items()}
