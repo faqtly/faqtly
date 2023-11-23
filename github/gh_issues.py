@@ -56,7 +56,7 @@ async def gather_comments(session: object, url: str, count: int, issue: int):
     for comment in r_comments:
         comments.append(comment['body'])
 
-    return {issue: {'Comments' : comments}}
+    return {issue: {'comments' : comments}}
 
 
 @time_spent
@@ -82,17 +82,20 @@ async def gather_issues(session: object):
 
     for issue in issues_list:
         try:
-            number = issue['number']
-            cm_url = issue['comments_url']
-            cm_pages = ceil(issue['comments'] / 100)
+            is_number = issue['number']
+            is_type   = 'feature' if 'pull_request' in issue else None
+            cm_url    = issue['comments_url']
+            cm_pages  = ceil(issue['comments'] / 100)
 
-            issues[number] = {'Name': issue['title'],
-                              'Text': issue['body'],
-                              'URL': issue['url'],
-                              'Comments_URL': cm_url}
+            issues[is_number] = {'name'        : issue['title'],
+                                 'author'      : issue['user']['login'],
+                                 'type'        : is_type,
+                                 'issues_url'  : issue['url'],
+                                 'comments_url': cm_url,
+                                 'text'        : issue['body']}
 
             url = cm_url.replace(fr'https://api.github.com/repos/{GITHUB_REPO}', '')
-            tasks.append(create_task(gather_comments(session, url, cm_pages, number)))
+            tasks.append(create_task(gather_comments(session, url, cm_pages, is_number)))
 
         except TypeError:
             continue
